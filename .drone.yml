@@ -12,15 +12,3 @@ steps:
   - docker ps -a
 
 
-services:
-- name: docker
-  image: docker:19.03-dind
-  #privileged: true
-  volumes:
-  - name: dockersock
-    path: /var/run/docker.sock
-
-volumes:
-- name: dockersock
-  temp: {}
-     
