@@ -11,4 +11,7 @@ steps:
   - sleep 5
   - docker ps -a
 
-
+volumes:
+- name: dockersock
+  host:
+    path: /var/run/docker.sock
