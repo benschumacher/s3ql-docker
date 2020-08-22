@@ -1,0 +1,26 @@
+kind: pipeline
+type: docker
+
+steps:
+- name: build
+  image: docker:19.03
+  volumes:
+  - name: dockersock
+    path: /var/run/docker.sock
+  commands:
+  - sleep 5
+  - docker ps -a
+
+
+services:
+- name: docker
+  image: docker:19.03-dind
+  privileged: true
+  volumes:
+  - name: dockersock
+    path: /var/run/docker.sock
+
+volumes:
+- name: dockersock
+  temp: {}
+     
