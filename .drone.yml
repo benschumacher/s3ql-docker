@@ -8,6 +8,8 @@ steps:
   settings:
     auto_tag: true
     repo: benschumacher/s3ql
-    username: benschumacher
-    password: 12345678
+    username: 
+      from_secret: DOCKER_USERNAME
+    password: 
+      from_secret: DOCKER_ACCESS_TOKEN
 
