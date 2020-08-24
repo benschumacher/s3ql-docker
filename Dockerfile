@@ -8,8 +8,8 @@ RUN    apk upgrade --no-cache --available \
     && tar -xv --strip 1 -f s3ql-3.5.0.tar.bz2 \
     && python -m venv /.local \
     && source /.local/bin/activate \
-    && pip install --upgrade pip wheel \
-    && pip install --upgrade \
+    && pip install --upgrade --no-cache-dir pip wheel \
+    && pip install --upgrade --no-cache-dir \
          cryptography \
          defusedxml \
          apsw \
