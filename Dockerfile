@@ -12,7 +12,13 @@ RUN    set -ex \
     && python -m venv /.local \
     && source /.local/bin/activate \
     && apk add --no-cache --virtual .build-deps \
-         build-base curl libressl-dev libffi-dev sqlite-dev fuse3-dev \
+         build-base \
+         curl \
+         findutils \
+         fuse3-dev \
+         libffi-dev \
+         libressl-dev \
+         sqlite-dev \
     && pip install --upgrade --no-cache-dir pip wheel \
     && pip install --no-cache-dir \
          cryptography \
@@ -26,8 +32,6 @@ RUN    set -ex \
          requests \
          google-auth \
          google-auth-oauthlib \
-         pytest_trio \
-         Sphinx \
     && true 
 RUN    set -ex \
     && cd /usr/src/s3ql \
@@ -35,9 +39,14 @@ RUN    set -ex \
     && python setup.py build_ext --inplace \
     && python setup.py install \
     && rm -rf /usr/src/s3ql \
-    && apk del .build-deps \
-    && mount.s3ql --version  \
-    && true
+    && find /.local /usr/local -depth \
+         \( \
+              \( -type d -a \( -name test -o -name tests -o -name idle_test \) \) \
+           -o \( -type f -a \( -name '*.pyc' -o -name '*.pyo' -o -name '*.a' \) \) \
+         \) -exec rm -rf '{}' + \
+    \
+    && apk del --no-network .build-deps \
+    && mount.s3ql --version
 
-ENV PATH=/usr/local/.venv/bin:$PATH
+ENV PATH=/.local/bin:$PATH
 CMD ["/bin/sh"]
