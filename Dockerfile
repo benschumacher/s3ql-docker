@@ -5,7 +5,7 @@ RUN    set -ex \
     && apk upgrade --no-cache --available \
     && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 \
     && apk add --no-cache --virtual .build-deps curl \
-    && curl -L -o s3ql.tar.bz2 https://github.com/s3ql/s3ql/releases/download/release-3.5.0/s3ql-3.5.0.tar.bz2 \ 
+    && curl -L -o s3ql.tar.bz2 https://github.com/s3ql/s3ql/releases/download/release-3.5.1/s3ql-3.5.1.tar.bz2 \ 
     && mkdir -p /usr/src/s3ql \
     && tar -x -C /usr/src/s3ql --strip 1 -f s3ql.tar.bz2 \
     && rm s3ql.tar.bz2 \
