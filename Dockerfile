@@ -34,6 +34,7 @@ RUN    set -ex \
          google-auth-oauthlib \
     && cd /usr/src/s3ql \
     && source /.local/bin/activate \
+    && env \
     && python setup.py build_ext --inplace \
     && python setup.py install \
     && cd / \
@@ -48,5 +49,5 @@ RUN    set -ex \
     && mount.s3ql --version
 
 ENV PATH=/.local/bin:$PATH
-ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["/sbin/tini", "-vvv", "--"]
 CMD ["/bin/sh"]
