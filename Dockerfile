@@ -1,4 +1,4 @@
-FROM python:3.8-alpine
+FROM python:3-alpine
 
 ENV PATH=/usr/local/.venv/bin:$PATH
 RUN    set -ex \
@@ -32,12 +32,11 @@ RUN    set -ex \
          requests \
          google-auth \
          google-auth-oauthlib \
-    && true 
-RUN    set -ex \
     && cd /usr/src/s3ql \
     && source /.local/bin/activate \
     && python setup.py build_ext --inplace \
     && python setup.py install \
+    && cd / \
     && rm -rf /usr/src/s3ql \
     && find /.local /usr/local -depth \
          \( \
