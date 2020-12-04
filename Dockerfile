@@ -1,9 +1,9 @@
-FROM python:3-alpine
+FROM python:3.8-alpine
 
 ENV PATH=/usr/local/.venv/bin:$PATH
 RUN    set -ex \
     && apk upgrade --no-cache --available \
-    && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 \
+    && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 tini \
     && apk add --no-cache --virtual .build-deps curl \
     && curl -L -o s3ql.tar.bz2 https://github.com/s3ql/s3ql/releases/download/release-3.5.1/s3ql-3.5.1.tar.bz2 \ 
     && mkdir -p /usr/src/s3ql \
@@ -49,4 +49,5 @@ RUN    set -ex \
     && mount.s3ql --version
 
 ENV PATH=/.local/bin:$PATH
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["/bin/sh"]
