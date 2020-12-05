@@ -1,9 +1,10 @@
-FROM python:3-alpine
+FROM python:3.7-alpine
 
-ENV PATH=/usr/local/.venv/bin:$PATH
+COPY run.sh /run.sh
 RUN    set -ex \
     && apk upgrade --no-cache --available \
-    && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 tini \
+    && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 dumb-init \
+    && apk add --no-cache -U --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing daemontools \
     && apk add --no-cache --virtual .build-deps curl \
     && curl -L -o s3ql.tar.bz2 https://github.com/s3ql/s3ql/releases/download/release-3.5.1/s3ql-3.5.1.tar.bz2 \ 
     && mkdir -p /usr/src/s3ql \
@@ -21,6 +22,7 @@ RUN    set -ex \
          sqlite-dev \
     && pip install --upgrade --no-cache-dir pip wheel \
     && pip install --no-cache-dir \
+         cython \
          cryptography \
          defusedxml \
          apsw \
@@ -32,9 +34,10 @@ RUN    set -ex \
          requests \
          google-auth \
          google-auth-oauthlib \
+    && true
+RUN    set -ex \
     && cd /usr/src/s3ql \
     && source /.local/bin/activate \
-    && env \
     && python setup.py build_ext --inplace \
     && python setup.py install \
     && cd / \
@@ -49,5 +52,4 @@ RUN    set -ex \
     && mount.s3ql --version
 
 ENV PATH=/.local/bin:$PATH
-ENTRYPOINT ["/sbin/tini", "-vvv", "--"]
-CMD ["/bin/sh"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--rewrite=15:2", "--", "/run.sh"]
