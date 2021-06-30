@@ -6,7 +6,7 @@ RUN    set -ex \
     && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 dumb-init \
     && apk add --no-cache -U --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing daemontools \
     && apk add --no-cache --virtual .build-deps curl \
-    && curl -L -o s3ql.tar.bz2 https://github.com/s3ql/s3ql/releases/download/release-3.5.1/s3ql-3.5.1.tar.bz2 \ 
+    && curl -L -o s3ql.tar.bz2 https://github.com/s3ql/s3ql/releases/download/release-3.7.3/s3ql-3.7.3.tar.bz2 \ 
     && mkdir -p /usr/src/s3ql \
     && tar -x -C /usr/src/s3ql --strip 1 -f s3ql.tar.bz2 \
     && rm s3ql.tar.bz2 \
@@ -14,6 +14,7 @@ RUN    set -ex \
     && source /.local/bin/activate \
     && apk add --no-cache --virtual .build-deps \
          build-base \
+         cargo \
          curl \
          findutils \
          fuse3-dev \
