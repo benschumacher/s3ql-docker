@@ -2,6 +2,7 @@ FROM python:3.9-alpine
 
 COPY run.sh /run.sh
 RUN    set -ex \
+    && env \
     && apk upgrade --no-cache --available \
     && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 dumb-init \
     && apk add --no-cache -U --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing daemontools \
