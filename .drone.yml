@@ -13,7 +13,7 @@ trigger:
 
 steps:
 - name: build-image
-  image: plugins/docker:18
+  image: plugins/docker
   settings:
     auto_tag: true
     repo: benschumacher/s3ql
