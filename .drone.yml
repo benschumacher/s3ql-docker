@@ -2,6 +2,16 @@ kind: pipeline
 type: docker
 name: default
 
+trigger:
+  branch:
+    include:
+    - main
+    - build-issues
+  event:
+    include:
+    - push
+    - pull_request
+
 steps:
 - name: build-image
   image: plugins/docker:18
@@ -11,8 +21,3 @@ steps:
     username: benschumacher
     password: 
       from_secret: DOCKER_ACCESS_TOKEN
-  when:
-    branch:
-    - main
-    - build-issues
-
