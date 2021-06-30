@@ -11,4 +11,7 @@ steps:
     username: benschumacher
     password: 
       from_secret: DOCKER_ACCESS_TOKEN
+  when:
+    branch:
+    - main
 
