@@ -1,8 +1,7 @@
-FROM python:3.9-alpine
+FROM python:3.9-alpine as builder
 
 ARG S3QL_VERSION=3.7.3
 
-COPY run.sh /run.sh
 RUN    set -ex \
     && env \
     && apk upgrade --no-cache --available \
@@ -55,4 +54,17 @@ RUN    set -ex \
 ENV PATH=/.local/bin:$PATH
 RUN mount.s3ql --version
 
+FROM python:3.9-alpine
+
+ARG BULID_DATE
+ARG S3QL_VERSION
+ENV S3QL_VERSION ${S3QL_VERSION}
+LABEL build_version="s3ql-docker python-version: ${PYTHON_VERSION} s3ql-version: ${S3QL_VERSION} build-date: ${BUILD_DATE}"
+
+ENV S3QL_VERSION ${S3QL_VERSION}
+
+COPY --from=builder /.local /.local
+COPY run.sh /run.sh
+
+USER s3ql
 ENTRYPOINT ["/usr/bin/dumb-init", "--rewrite=15:2", "--", "/run.sh"]
