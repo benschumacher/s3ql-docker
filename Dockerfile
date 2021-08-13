@@ -52,7 +52,11 @@ RUN    set -ex \
     && apk del --no-network .build-deps \
     && true
 
+RUN ln -nsf /usr/bin/fusermount3 /.local/bin/fusermount
+ENV HOME=/
 ENV PATH=/.local/bin:$PATH
 RUN mount.s3ql --version
+RUN addgroup -g 911 -S abc && adduser -u 911 -G abc -H -S abc
+USER abc
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--rewrite=15:2", "--", "/run.sh"]
