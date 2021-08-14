@@ -2,7 +2,6 @@ FROM python:3.9-alpine
 
 ARG S3QL_VERSION=3.7.3
 
-COPY run.sh /run.sh
 RUN    set -ex \
     && env \
     && apk upgrade --no-cache --available \
@@ -53,10 +52,15 @@ RUN    set -ex \
     && true
 
 RUN ln -nsf /usr/bin/fusermount3 /.local/bin/fusermount
-ENV HOME=/
+RUN addgroup -g 911 -S abc && adduser -u 911 -G abc -H -S abc
+
+ENV S3QL_VERSION=${S3QL_VERSION}
 ENV PATH=/.local/bin:$PATH
 RUN mount.s3ql --version
-RUN addgroup -g 911 -S abc && adduser -u 911 -G abc -H -S abc
+
+ENV HOME=/
 USER abc
+
+COPY run.sh /run.sh
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--rewrite=15:2", "--", "/run.sh"]
