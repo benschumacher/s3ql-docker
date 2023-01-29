@@ -1,6 +1,8 @@
 FROM python:3.10-alpine as builder
 
+ARG BUILD_DATE
 ARG S3QL_VERSION=3.7.3
+ENV S3QL_VERSION ${S3QL_VERSION}
 
 RUN    set -ex \
     && env \
@@ -38,31 +40,20 @@ RUN    set -ex \
          google-auth-oauthlib \
     && cd /usr/src/s3ql \
     && source /.local/bin/activate \
-    && find . -type f -mtime +10950 \
     && python setup.py build_ext --inplace \
     && python setup.py install \
-    && cd / \
-    && rm -rf /usr/src/s3ql \
     && find /.local /usr/local -depth \
          \( \
               \( -type d -a \( -name test -o -name tests -o -name idle_test \) \) \
            -o \( -type f -a \( -name '*.pyc' -o -name '*.pyo' -o -name '*.a' \) \) \
-         \) -exec rm -rf '{}' + \
+         \) -exec rm -vrf '{}' + \
     \
-    && apk del --no-network .build-deps \
     && true
-
-ENV PATH=/.local/bin:$PATH
-RUN mount.s3ql --version
 
 FROM python:3.10-alpine
 
-ARG BULID_DATE
-ARG S3QL_VERSION
-ENV S3QL_VERSION ${S3QL_VERSION}
+ARG S3QL_VERSION=3.7.3
 LABEL build_version="s3ql-docker python-version: ${PYTHON_VERSION} s3ql-version: ${S3QL_VERSION} build-date: ${BUILD_DATE}"
-
-ENV S3QL_VERSION ${S3QL_VERSION}
 
 RUN    set -ex \
     && apk upgrade --no-cache --available \
