@@ -1,7 +1,9 @@
+ARG S3QL_VERSION=3.7.3
+
 FROM python:3.10-alpine as builder
 
 ARG BUILD_DATE
-ARG S3QL_VERSION=3.7.3
+ARG S3QL_VERSION
 ENV S3QL_VERSION ${S3QL_VERSION}
 
 RUN    set -ex \
@@ -52,7 +54,7 @@ RUN    set -ex \
 
 FROM python:3.10-alpine
 
-ARG S3QL_VERSION=3.7.3
+ARG S3QL_VERSION
 LABEL build_version="s3ql-docker python-version: ${PYTHON_VERSION} s3ql-version: ${S3QL_VERSION} build-date: ${BUILD_DATE}"
 
 RUN    set -ex \
