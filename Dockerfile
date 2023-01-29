@@ -1,6 +1,6 @@
 FROM python:3.9-alpine as builder
 
-ARG S3QL_VERSION=3.7.3
+ARG S3QL_VERSION=3.8.1
 
 RUN    set -ex \
     && env \
@@ -8,10 +8,10 @@ RUN    set -ex \
     && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 dumb-init \
     && apk add --no-cache -U --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing daemontools \
     && apk add --no-cache --virtual .build-deps curl \
-    && curl -L -o s3ql.tar.bz2 https://github.com/s3ql/s3ql/releases/download/release-${S3QL_VERSION}/s3ql-${S3QL_VERSION}.tar.bz2 \ 
+    && curl -Lf -o s3ql.tar.gz https://github.com/s3ql/s3ql/releases/download/release-${S3QL_VERSION}/s3ql-${S3QL_VERSION}.tar.gz \ 
     && mkdir -p /usr/src/s3ql \
-    && tar -x -C /usr/src/s3ql --strip 1 -f s3ql.tar.bz2 \
-    && rm s3ql.tar.bz2 \
+    && tar -mx -C /usr/src/s3ql --strip 1 -f s3ql.tar.gz \
+    && rm s3ql.tar.gz \
     && python -m venv /.local \
     && source /.local/bin/activate \
     && apk add --no-cache --virtual .build-deps \
@@ -38,6 +38,7 @@ RUN    set -ex \
          google-auth-oauthlib \
     && cd /usr/src/s3ql \
     && source /.local/bin/activate \
+    && find . -type f -mtime +10950 \
     && python setup.py build_ext --inplace \
     && python setup.py install \
     && cd / \
@@ -63,8 +64,21 @@ LABEL build_version="s3ql-docker python-version: ${PYTHON_VERSION} s3ql-version:
 
 ENV S3QL_VERSION ${S3QL_VERSION}
 
+RUN    set -ex \
+    && apk upgrade --no-cache --available \
+    && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 dumb-init \
+    && apk add --no-cache -U --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing daemontools
+
 COPY --from=builder /.local /.local
 COPY run.sh /run.sh
 
+RUN    set -ex \ 
+    && ln -nsf /usr/bin/fusermount3 /.local/bin/fusermount \
+    && addgroup -g 911 -S s3ql && adduser -u 911 -G s3ql -H -S s3ql
+
 USER s3ql
+ENV PATH=/.local/bin:$PATH
+ENV HOME=/
+RUN mount.s3ql --version
+
 ENTRYPOINT ["/usr/bin/dumb-init", "--rewrite=15:2", "--", "/run.sh"]
