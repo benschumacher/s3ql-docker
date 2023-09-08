@@ -52,6 +52,6 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
-          S3QL_VERSION=${{ steps.vars.output.s3ql_version }}
+          S3QL_VERSION=${{ steps.vars.outputs.s3ql_version }}
 
 
