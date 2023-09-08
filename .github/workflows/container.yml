@@ -14,6 +14,12 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - name: Get version
+      id: vars
+      run: 
+      - echo ::set-output name=version::$(cat VERSION)
+      - echo ::set-output name=s3ql_version::$(cat S3QL_VERSION)
+
     - name: Docker metadata
       id: meta
       uses: docker/metadata-action@v4
@@ -24,6 +30,7 @@ jobs:
           type=schedule
           type=ref,event=branch
           type=ref,event=pr
+          type=semver,pattern=${{ steps.vars.output.version }}-{{version}},value=${{ steps.vars.output.sq3l_version }}
           type=sha,format=short,prefix=,suffix=
           type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
 
@@ -44,4 +51,7 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+        build-args:
+        - S3QL_VERSION: ${{ steps.vars.output.s3ql_version }}
+
 
