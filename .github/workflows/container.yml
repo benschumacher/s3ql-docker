@@ -16,9 +16,9 @@ jobs:
 
     - name: Get version
       id: vars
-      run: 
-      - echo ::set-output name=version::$(cat VERSION)
-      - echo ::set-output name=s3ql_version::$(cat S3QL_VERSION)
+      run: |
+        echo version=$(cat VERSION) >> "$GITHUB_OUTPUT"
+        echo name=s3ql_version=$(cat S3QL_VERSION) >> "$GITHUB_OUTPUT"
 
     - name: Docker metadata
       id: meta
@@ -52,6 +52,6 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args:
-        - S3QL_VERSION: ${{ steps.vars.output.s3ql_version }}
+          S3QL_VERSION: ${{ steps.vars.output.s3ql_version }}
 
 
