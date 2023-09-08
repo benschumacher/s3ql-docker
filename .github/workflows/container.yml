@@ -20,12 +20,6 @@ jobs:
         echo version=$(cat VERSION) >> "$GITHUB_OUTPUT"
         echo s3ql_version=$(cat S3QL_VERSION) >> "$GITHUB_OUTPUT"
 
-    - name: Dump versions
-      env:
-        S3QL_VERSION=${{ steps.vars.outputs.s3ql_version }}
-        VERSION=${{ steps.vars.outputs.version }}
-      run: echo "S3QL_VERSION=${S3QL_VERSION} VERSION=${VERSION}"
-
     - name: Docker metadata
       id: meta
       uses: docker/metadata-action@v4
