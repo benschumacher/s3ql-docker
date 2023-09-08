@@ -18,7 +18,7 @@ jobs:
       id: vars
       run: |
         echo version=$(cat VERSION) >> "$GITHUB_OUTPUT"
-        echo name=s3ql_version=$(cat S3QL_VERSION) >> "$GITHUB_OUTPUT"
+        echo s3ql_version=$(cat S3QL_VERSION) >> "$GITHUB_OUTPUT"
 
     - name: Docker metadata
       id: meta
