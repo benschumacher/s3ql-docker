@@ -1,4 +1,4 @@
-ARG S3QL_VERSION=3.7.3
+ARG S3QL_VERSION=3.8.1
 
 FROM python:3.10-alpine as builder
 
@@ -12,10 +12,10 @@ RUN    set -ex \
     && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 dumb-init \
     && apk add --no-cache -U --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing daemontools \
     && apk add --no-cache --virtual .build-deps curl \
-    && curl -Lf -o s3ql.tar.bz2 https://github.com/s3ql/s3ql/releases/download/release-${S3QL_VERSION}/s3ql-${S3QL_VERSION}.tar.bz2 \ 
+    && curl -Lf -o s3ql.tar.gz https://github.com/s3ql/s3ql/releases/download/release-${S3QL_VERSION}/s3ql-${S3QL_VERSION}.tar.gz \ 
     && mkdir -p /usr/src/s3ql \
-    && tar -mx -C /usr/src/s3ql --strip 1 -f s3ql.tar.bz2 \
-    && rm s3ql.tar.bz2 \
+    && tar -mx -C /usr/src/s3ql --strip 1 -f s3ql.tar.gz \
+    && rm s3ql.tar.gz \
     && python -m venv /.local \
     && source /.local/bin/activate \
     && apk add --no-cache --virtual .build-deps \
