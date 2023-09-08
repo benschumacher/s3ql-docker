@@ -1,4 +1,4 @@
-ARG S3QL_VERSION=3.7.3
+ARG S3QL_VERSION=3.8.1
 
 FROM python:3.10-alpine as builder
 
