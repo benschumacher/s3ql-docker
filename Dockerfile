@@ -1,4 +1,5 @@
 ARG S3QL_VERSION=3.8.1
+ARG S3QL_UID=911
 
 FROM python:3.10-alpine as builder
 
@@ -41,7 +42,6 @@ RUN    set -ex \
          google-auth \
          google-auth-oauthlib \
     && cd /usr/src/s3ql \
-    && source /.local/bin/activate \
     && python setup.py build_ext --inplace \
     && python setup.py install \
     && find /.local /usr/local -depth \
@@ -55,6 +55,9 @@ RUN    set -ex \
 FROM python:3.10-alpine
 
 ARG S3QL_VERSION
+ARG S3QL_UID
+ENV S3QL_UID ${S3QL_UID}
+
 LABEL build_version="s3ql-docker python-version: ${PYTHON_VERSION} s3ql-version: ${S3QL_VERSION} build-date: ${BUILD_DATE}"
 
 RUN    set -ex \
@@ -67,11 +70,14 @@ COPY run.sh /run.sh
 
 RUN    set -ex \ 
     && ln -nsf /usr/bin/fusermount3 /.local/bin/fusermount \
-    && addgroup -g 911 -S s3ql && adduser -u 911 -G s3ql -H -S s3ql
+    && addgroup -g ${S3QL_UID} -S s3ql && adduser -u ${S3QL_UID} -G s3ql -H -S s3ql \
+    && touch /var/mountpoint && chown ${S3QL_UID}:${S3QL_UID} /var/mountpoint
 
 USER s3ql
 ENV PATH=/.local/bin:$PATH
 ENV HOME=/
 RUN mount.s3ql --version
 
+HEALTHCHECK --interval=5m --start-period=30s \
+    CMD s3qlstat "$(cat /var/mountpoint)"
 ENTRYPOINT ["/usr/bin/dumb-init", "--rewrite=15:2", "--", "/run.sh"]
