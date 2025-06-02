@@ -1,7 +1,6 @@
 #!/bin/sh
 # vim: set shiftwidth=4:
-set -eu
-set -o pipefail
+set -eu -o pipefail
 
 [ -z "${S3QL_DEBUG:-}" ] || set -x
 
