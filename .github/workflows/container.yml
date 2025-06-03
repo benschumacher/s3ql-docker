@@ -45,15 +45,12 @@ jobs:
         EVENT_BEFORE_SHA: ${{ github.event.before }}
         CURRENT_SHA: ${{ github.sha }}
         S3QL_VERSION_VALUE: ${{ steps.s3ql_version_reader.outputs.s3ql_version }}
-        VERSION_FILE: "VERSION" # Path to VERSION file, relative to workspace root
+        VERSION_FILE: VERSION 
         WORKSPACE_PATH: ${{ github.workspace }}
-        # GITHUB_OUTPUT is automatically available to the script for setting outputs
 
     - name: Commit and Push VERSION file
       # Only run on direct pushes to main or manual dispatches on main branch
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
-      env:
-        VERSION_FILE: "VERSION"
       run: |
         git config --local user.name 'github-actions[bot]'
         git config --local user.email 'github-actions[bot]@users.noreply.github.com'
@@ -77,6 +74,7 @@ jobs:
           for i in 1 2 3; do git push && break || (echo "Push attempt $i failed, retrying in 5s..." && sleep 5); done
         fi
       env:
+        VERSION_FILE: VERSION
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Docker metadata
