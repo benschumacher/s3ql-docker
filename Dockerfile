@@ -1,4 +1,4 @@
-ARG S3QL_VERSION=5.2.0
+ARG S3QL_VERSION=5.2.3
 ARG S3QL_UID=911
 
 FROM python:3.10-alpine AS builder
@@ -6,20 +6,26 @@ FROM python:3.10-alpine AS builder
 ARG BUILD_DATE
 ARG S3QL_VERSION
 ENV S3QL_VERSION=${S3QL_VERSION}
+ARG S3QL_URL=https://github.com/s3ql/s3ql/releases/download/s3ql-${S3QL_VERSION}/s3ql-${S3QL_VERSION}.tar.gz
 
+# download and unpack source
 RUN    set -ex \
     && env \
     && apk upgrade --no-cache --available \
-    && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 dumb-init \
-    && apk add --no-cache -U --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing daemontools \
-    && apk add --no-cache --virtual .build-deps curl \
-    && curl -Lf -o s3ql.tar.gz https://github.com/s3ql/s3ql/releases/download/s3ql-${S3QL_VERSION}/s3ql-${S3QL_VERSION}.tar.gz \ 
+    && apk add --virtual .build-deps curl \
+    && curl -Lf -o s3ql.tar.gz "${S3QL_URL}" \
     && mkdir -p /usr/src/s3ql \
-    && tar -mx -C /usr/src/s3ql --strip 1 -f s3ql.tar.gz \
+    && tar -mvx -C /usr/src/s3ql --strip 1 -f s3ql.tar.gz \
     && rm s3ql.tar.gz \
+    && ls -l /usr/src/s3ql \
+    && true
+
+# set up build environment
+WORKDIR /usr/src/s3ql
+RUN    set -ex \
     && python -m venv /.local \
     && source /.local/bin/activate \
-    && apk add --no-cache --virtual .build-deps \
+    && apk add --virtual .build-deps \
          build-base \
          cargo \
          curl \
@@ -28,8 +34,8 @@ RUN    set -ex \
          libffi-dev \
          openssl-dev \
          sqlite-dev \
-    && pip install --upgrade --no-cache-dir wheel \
-    && pip install --no-cache-dir \
+    && pip install --upgrade build pip setuptools wheel \
+    && pip install \
          cryptography \
 	 cython \
          defusedxml \
@@ -41,12 +47,15 @@ RUN    set -ex \
          requests \
          google-auth \
          google-auth-oauthlib \
-    && cd /usr/src/s3ql \
+    && true
+
+# build s3ql
+RUN    set -ex \
+    && source /.local/bin/activate \
     && python setup.py build_ext --inplace \
     && true
 
-    #&& python setup.py bdist_wheel \
-WORKDIR /usr/src/s3ql
+# install s3ql
 RUN    set -ex \
     && source /.local/bin/activate \
     && pip install --prefix=/.local . \
@@ -70,7 +79,7 @@ LABEL build_version="s3ql-docker python-version: ${PYTHON_VERSION} s3ql-version:
 
 RUN    set -ex \
     && apk upgrade --no-cache --available \
-    && apk add --no-cache psmisc libressl libffi sqlite-dev fuse3 dumb-init libstdc++ \
+    && apk add --no-cache psmisc libressl libffi sqlite fuse3 dumb-init libstdc++ \
     && apk add --no-cache -U --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing daemontools
 
 COPY --from=builder /.local /.local
