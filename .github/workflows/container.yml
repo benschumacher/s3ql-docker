@@ -3,85 +3,79 @@ name: Docker Image CI
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: 
+    - main
+    - "gha/**"
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
-# Add permissions to allow writing back to the repository
 permissions:
-  contents: write # To commit VERSION file
-  packages: write # Allow it to publish to GitHub Container Registry
+  contents: write # To commit VERSION file if updated by the script
+  packages: write # To publish to GHCR.io or Docker Hub
 
 jobs:
-  buildx: 
+  buildx:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        # Fetch all history for all branches and tags.
+        # This is necessary for `git diff` to compare changes accurately against `github.event.before`.
+        fetch-depth: 0
 
     - name: Get S3QL_VERSION
       id: s3ql_version_reader
       run: |
-        echo s3ql_version=$(cat S3QL_VERSION) >> "$GITHUB_OUTPUT"
+        echo "s3ql_version=$(cat S3QL_VERSION)" >> "$GITHUB_OUTPUT"
 
-    - name: Calculate and Update Version
-      id: version_update
+    - name: Calculate Version for Build
+      id: version_calculator
       run: |
-        CURRENT_DATE_YM=$(date +'%Y.%m')
-        NEW_VERSION=""
-        VERSION_FILE="VERSION"
-        S3QL_VERSION_VALUE="${{ steps.s3ql_version_reader.outputs.s3ql_version }}" # Get it from previous step
-
-        if [[ ! -f $VERSION_FILE ]]; then
-          echo "$VERSION_FILE not found. Initializing to ${CURRENT_DATE_YM}.0"
-          NEW_VERSION="${CURRENT_DATE_YM}.0"
-        else
-          EXISTING_VERSION=$(cat $VERSION_FILE)
-          # Regex to parse YYYY.MM.REVISION
-          if [[ "$EXISTING_VERSION" =~ ^([0-9]{4}\.[0-9]{2})\.([0-9]+)$ ]]; then
-            EXISTING_YM="${BASH_REMATCH[1]}"
-            EXISTING_REV="${BASH_REMATCH[2]}"
-
-            if [[ "$EXISTING_YM" == "$CURRENT_DATE_YM" ]]; then
-              NEW_REV=$((EXISTING_REV + 1))
-              NEW_VERSION="${CURRENT_DATE_YM}.${NEW_REV}"
-              echo "Month matches. Incremented revision: $NEW_VERSION"
-            else
-              NEW_VERSION="${CURRENT_DATE_YM}.0"
-              echo "New month/year. Reset revision: $NEW_VERSION"
-            fi
-          else
-            echo "Warning: $VERSION_FILE content '$EXISTING_VERSION' is not in YYYY.MM.REVISION format. Resetting."
-            NEW_VERSION="${CURRENT_DATE_YM}.0"
-          fi
+        SCRIPT_PATH=".github/scripts/calculate_version.sh"
+        if [[ ! -f "$SCRIPT_PATH" ]]; then
+          echo "::error::Version calculation script not found at $SCRIPT_PATH"
+          exit 1
         fi
-
-        echo "Final new version: $NEW_VERSION"
-        echo "$NEW_VERSION" > $VERSION_FILE # Update the VERSION file in the workspace
-        echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-        echo "s3ql_version_passthrough=$S3QL_VERSION_VALUE" >> "$GITHUB_OUTPUT" # Pass S3QL_VERSION through
+        chmod +x "$SCRIPT_PATH" # Ensure script is executable
+        "$SCRIPT_PATH" # Execute the script
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        GIT_REF: ${{ github.ref }}
+        EVENT_BEFORE_SHA: ${{ github.event.before }}
+        CURRENT_SHA: ${{ github.sha }}
+        S3QL_VERSION_VALUE: ${{ steps.s3ql_version_reader.outputs.s3ql_version }}
+        VERSION_FILE: VERSION 
+        WORKSPACE_PATH: ${{ github.workspace }}
 
     - name: Commit and Push VERSION file
-      # Only run on direct pushes to main or manual dispatches on main,
-      # AND if the version file actually changed (which it always will with this logic for now)
+      # Only run on direct pushes to main or manual dispatches on main branch
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
       run: |
         git config --local user.name 'github-actions[bot]'
         git config --local user.email 'github-actions[bot]@users.noreply.github.com'
-        git add VERSION
-        # Check if there are changes to commit
-        if git diff --staged --quiet; then
-          echo "VERSION file unchanged, nothing to commit."
+        
+        # Add the VERSION file to staging.
+        # If the script decided to use a manually updated version that was already 
+        # part of the incoming push AND its content matches what the script determined, 
+        # `git diff --staged` will show no changes.
+        git add "$VERSION_FILE"
+
+        # Check if the staged VERSION file actually has differences from HEAD.
+        # This handles cases where the script rewrote the file with the same content it already had
+        # (e.g. manual update matched script's expectation) or if no change was made by script.
+        if git diff --staged --quiet "$VERSION_FILE"; then
+          echo "INFO: '${VERSION_FILE}' content in workspace is unchanged or matches the incoming version from push. Nothing to auto-commit."
         else
-          git commit -m "Bump version to ${{ steps.version_update.outputs.new_version }} [skip ci]"
-          echo "Pushing updated VERSION file..."
-          # Retry push in case of transient issues or if another workflow run just pushed
-          for i in 1 2 3; do git push && break || sleep 5; done
+          echo "INFO: '${VERSION_FILE}' was updated by the versioning script (e.g., auto-increment or month reset)."
+          git commit -m "Bump version to ${{ steps.version_calculator.outputs.new_version }} [skip ci]"
+          echo "INFO: Pushing updated '${VERSION_FILE}' file..."
+          # Retry push in case of transient issues
+          for i in 1 2 3; do git push && break || (echo "Push attempt $i failed, retrying in 5s..." && sleep 5); done
         fi
       env:
+        VERSION_FILE: VERSION
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
 
     - name: Docker metadata
       id: meta
@@ -89,18 +83,18 @@ jobs:
       with:
         images: |
           benschumacher/s3ql
+          ghcr.io/${{ github.repository_owner }}/s3ql # Uncomment if using GHCR
         tags: |
-          # Automatic: YYYY.MM.REVISION
-          type=raw,value=${{ steps.version_update.outputs.new_version }}
-          # S3QL specific tag, e.g. YYYY.MM.REVISION-s3ql_X.Y.Z
-          type=raw,value=${{ steps.version_update.outputs.new_version }}-s3ql_${{ steps.version_update.outputs.s3ql_version_passthrough }}
+          # Use the calculated version for tags
+          type=raw,value=${{ steps.version_calculator.outputs.new_version }}
+          type=raw,value=${{ steps.version_calculator.outputs.new_version }}-s3ql_${{ steps.version_calculator.outputs.s3ql_version_passthrough }}
+
           # Latest tag for main branch pushes or manual dispatches on main
           type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
 
-          # Standard tags
           type=schedule
-          type=ref,event=branch
-          type=ref,event=pr
+          type=ref,event=branch # e.g., main, feature-branch-name
+          type=ref,event=pr    # e.g., pr-123
           type=sha,format=short,prefix=,suffix=
 
     - name: Set up Docker Buildx
@@ -113,14 +107,21 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+    - name: Login to GitHub Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and Push
       uses: docker/build-push-action@v5
       with:
         context: .
-        push: ${{ github.event_name != 'pull_request' }}
+        push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
-          S3QL_VERSION=${{ steps.version_update.outputs.s3ql_version_passthrough }}
+          S3QL_VERSION=${{ steps.version_calculator.outputs.s3ql_version_passthrough }}
 
