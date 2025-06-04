@@ -1,5 +1,6 @@
 ARG S3QL_VERSION=5.2.3
 ARG S3QL_UID=911
+ARG VERBOSE=0
 
 FROM python:3.10-alpine AS builder
 
@@ -7,6 +8,7 @@ ARG BUILD_DATE
 ARG S3QL_VERSION
 ENV S3QL_VERSION=${S3QL_VERSION}
 ARG S3QL_URL=https://github.com/s3ql/s3ql/releases/download/s3ql-${S3QL_VERSION}/s3ql-${S3QL_VERSION}.tar.gz
+ARG VERBOSE
 
 # download and unpack source
 RUN    set -ex \
@@ -15,9 +17,9 @@ RUN    set -ex \
     && apk add --virtual .build-deps curl \
     && curl -Lf -o s3ql.tar.gz "${S3QL_URL}" \
     && mkdir -p /usr/src/s3ql \
-    && tar -mvx -C /usr/src/s3ql --strip 1 -f s3ql.tar.gz \
+    && tar -mx${VERBOSE:+v} -C /usr/src/s3ql --strip 1 -f s3ql.tar.gz \
     && rm s3ql.tar.gz \
-    && ls -l /usr/src/s3ql \
+    && if [ "$VERBOSE" != 0 ]; then ls -l /usr/src/s3ql; fi \
     && true
 
 # set up build environment
@@ -37,13 +39,10 @@ RUN    set -ex \
     && pip install --upgrade build pip setuptools wheel \
     && pip install \
          cryptography \
-	 cython \
          defusedxml \
          apsw \
          trio \
          pyfuse3 \
-         pytest \
-	 pytest_trio \
          requests \
          google-auth \
          google-auth-oauthlib \
