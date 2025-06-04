@@ -24,10 +24,13 @@ jobs:
         # This is necessary for `git diff` to compare changes accurately against `github.event.before`.
         fetch-depth: 0
 
-    - name: Get S3QL_VERSION
-      id: s3ql_version_reader
+    - name: Populate variables
+      id: vars
       run: |
         echo "s3ql_version=$(cat S3QL_VERSION)" >> "$GITHUB_OUTPUT"
+        if [[ "${{ github.event_name }}" == "pull_request" || "${{ github.refs }}" != 'refs/heads/main' ]]; then
+          echo "verbose_build=1" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Calculate Version for Build
       id: version_calculator
@@ -44,7 +47,7 @@ jobs:
         GIT_REF: ${{ github.ref }}
         EVENT_BEFORE_SHA: ${{ github.event.before }}
         CURRENT_SHA: ${{ github.sha }}
-        S3QL_VERSION_VALUE: ${{ steps.s3ql_version_reader.outputs.s3ql_version }}
+        S3QL_VERSION_VALUE: ${{ steps.vars.outputs.s3ql_version }}
         VERSION_FILE: VERSION 
         WORKSPACE_PATH: ${{ github.workspace }}
 
@@ -87,7 +90,7 @@ jobs:
         tags: |
           # Use the calculated version for tags
           type=raw,value=${{ steps.version_calculator.outputs.new_version }}
-          type=raw,value=${{ steps.version_calculator.outputs.new_version }}-s3ql_${{ steps.version_calculator.outputs.s3ql_version_passthrough }}
+          type=raw,value=${{ steps.version_calculator.outputs.new_version }}-s3ql_${{ steps.vars.outputs.s3ql_version }}
 
           # Latest tag for main branch pushes or manual dispatches on main
           type=raw,value=latest,enable=${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
@@ -123,5 +126,6 @@ jobs:
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
-          S3QL_VERSION=${{ steps.version_calculator.outputs.s3ql_version_passthrough }}
+          S3QL_VERSION=${{ steps.vars.outputs.s3ql_version }}
+          VERBOSE=${{ steps.vars.outputs.verbose_build }}
 
